@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "init-ts": "tsc --init",
+    "build": "npm run clear-output && npm run clear && tsc > /dev/null",
+    "clear": "rm -rf ./dist",
+    "clear-output": "rm -rf ./output",
+    "test": "npm run clear-output && npm run clear && tsc > /dev/null || node ./dist/main.mjs"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.7",
+    "@types/node": "^22.0.2",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-schema-official": "^2.0.25",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
+    "axios": "^1.7.2",
+    "lodash": "^4.17.21"
+  }
+}

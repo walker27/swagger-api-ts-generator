@@ -47,10 +47,9 @@ const config: UserConfig = {
 
     return path;
   },
-  /** 自定义每个path定义的渲染 */
-  // onPathTypeRender(method: string, url: string, requestType: string | null, responseType: string | null, divider: Record<string, string[]>) {
-  //   const apiDefine = `"${method} ${url}": defineAPI<${requestType}, ${responseType}>("${url}", "${method}"${Object.keys(divider).length ? `, {divider: ${JSON.stringify(divider)}}` : ''})`
-  //   return apiDefine;
+  /** 自定义每个path的索引字符串 */
+  // onPathIndexRender(method: string, url: string) {
+  //   return `${method} ${url}`;
   // },
   /** 
    * 生成文件内容
@@ -65,7 +64,7 @@ const config: UserConfig = {
    *  - index.ts
    *  - utils.ts
    */
-  onGenerateFiles(pathDefineStrList: string[], schemasContent: string) {
+  onGenerateFiles(pathDefineStrList: string[], schemasContent: string, pathDefineTuple: string) {
     // 填写__的内容
     // todo
     const apiRootFolderPath = path.resolve(__dirname, '..', '__')
@@ -78,7 +77,9 @@ const config: UserConfig = {
     const serviceFolderPath = path.resolve(apiRootFolderPath, serviceFolderName)
     const typesFilePath = path.resolve(serviceFolderPath, `api.d.ts`)
     const apiIndexPath = path.resolve(serviceFolderPath, `index.ts`)
-    const apiRootIndexPath = path.resolve(apiRootFolderPath, `index.ts`) 
+    const apiInterceptorPath = path.resolve(serviceFolderPath, `interceptors.ts`)
+    const apiPathTypeTuple = path.resolve(serviceFolderPath, `path-types.d.ts`)
+    const apiRootIndexPath = path.resolve(apiRootFolderPath, `index.ts`)
 
     // 生成服务文件夹
     if (!fs.existsSync(serviceFolderPath)) {
@@ -91,6 +92,14 @@ const config: UserConfig = {
     // 生成API文件
     const apiFileContent = apiFileTemplate(pathDefineStrList)
     fs.writeFileSync(apiIndexPath, apiFileContent)
+
+    // 生成path-types.d.ts文件
+    fs.writeFileSync(apiPathTypeTuple, pathDefineTuple);
+
+    // 生成interceptors.ts文件
+    if (!fs.existsSync(apiInterceptorPath)) {
+      fs.writeFileSync(apiInterceptorPath, apiInterceptorsFileTemplate());
+    }
 
     // 生成utils文件
     if (!fs.existsSync(utilsFilePath)) {
@@ -147,5 +156,22 @@ export default function callAPI<Path extends APIPaths>(path: Path, params?: Para
   // @ts-ignore
   return apiMap[path](params, option);
 }
+`;
+}
+
+function apiInterceptorsFileTemplate() {
+  return `/**
+* ! 文件由脚本生成，不要直接修改
+*/
+/// <reference types="./path-types" />
+import { Interceptors } from "../utils";
+
+const __ = undefined;
+const interceptors = new Interceptors<APITypeTuple>();
+
+export default interceptors;
+
+// interceptors.add(path, __, __);
+
 `;
 }

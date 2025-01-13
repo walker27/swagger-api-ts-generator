@@ -2,8 +2,70 @@
 
 
 const utilsTsTemplate = `/**
- * 此文件可以按照工程情况调整，脚本只会在没有生成该文件的情况下生成
- */
+* 此文件可以按照工程情况调整，脚本只会在没有生成该文件的情况下生成
+*/
+
+type RequestPartOptions = Parameters<typeof request>[1];
+
+type RequestInterceptor<T> = (params: T, cfg?: RequestPartOptions) => [T, RequestPartOptions?];
+
+type ResponseInterceptor<T, K> = (res: T, params: K, cfg?: RequestPartOptions) => T;
+
+const defaultReqInterceptor: RequestInterceptor<any> = (params, options) => [params, options]
+const identity = <T>(t: T) => t;
+
+export default function defineAPIHOC(urlPrefix: string, interceptors?: Interceptors<any>) {
+  return function defineAPI<Params, Response>(url: string, method: HTTPMethod, helper?: APIHelper) {
+    const divider = parameterDividerHOC(url, method, helper?.divider);
+    const { requestInterceptor = defaultReqInterceptor, responseInterceptor = identity } = interceptors?.get(\`\${method} \${url}\`) ?? {};
+    // the return type is a trick, this can make callAPI get a correct type
+    return (iParams: Params, iOptions?: RequestPartOptions) => {
+      const [params, options] = requestInterceptor(iParams, iOptions);
+      const { url: queryUrl, opt: dataPartOptions } = divider(params);
+      const reqConfig = {
+        url: \`\${urlPrefix}\${queryUrl}\`,
+        method,
+        ...dataPartOptions,
+        ...options
+      };
+      return request(reqConfig)
+        .then(res => {
+          const modifiedRes = responseInterceptor(res, params, options);
+          return modifiedRes;
+        }) as Response
+    }
+  }
+}
+
+
+
+export class Interceptors<Group extends Record<any, [any, any]>> {
+  private requestObserverMap: Map<keyof Group, RequestInterceptor<any>> = new Map();
+  private responseObserverMap: Map<keyof Group, ResponseInterceptor<any, any>> = new Map();
+
+  public add<IPath extends keyof Group>(key: IPath,
+    requestInterceptor?: RequestInterceptor<Group[IPath][0]>,
+    responseInterceptor?: ResponseInterceptor<Group[IPath][1], Group[IPath][0]>,
+  ) {
+    if(this.requestObserverMap.has(key)) {
+      console.warn(\`Request Interceptors: \${key as string} is exist\`);
+    }
+    requestInterceptor && this.requestObserverMap.set(key, requestInterceptor);
+    if(this.responseObserverMap.has(key)) {
+      console.warn(\`Response Interceptors: \${key as string} is exist\`);
+    }
+    responseInterceptor && this.responseObserverMap.set(key, responseInterceptor);
+    return this;
+  }
+
+  public get(key: keyof Group) {
+    return {
+      requestInterceptor: this.requestObserverMap.get(key),
+      responseInterceptor: this.responseObserverMap.get(key),
+    }
+  }
+}
+
 type APIHelper = {
   divider?: { path?: string[], query?: string[], body?: string[], formData?: string[] }
 }
@@ -66,23 +128,6 @@ function parameterDividerHOC(url: string, httpMethod: HTTPMethod, divider: APIHe
   }
 
 }
-
-export default function defineAPIHOC(urlPrefix: string) {
-
-  return function defineAPI<Params, Response>(url: string, method: HTTPMethod, helper?: APIHelper) {
-    const divider = parameterDividerHOC(url, method, helper?.divider);
-    // the return type is a trick, this can make callAPI get a correct type
-    return (params: Params, options?: Parameters<typeof request>[1]) => {
-      const { url: queryUrl, opt: dataPartOptions } = divider(params);
-      return request(\`\${urlPrefix}\${queryUrl}\`, {
-        method,
-        ...dataPartOptions,
-        ...options
-      }) as Response
-    }
-  }
-}
-
 `
 
 export default function getUtilsFileContent () {

@@ -1,5 +1,6 @@
 import swaggerJSDoc from "swagger-jsdoc";
 import lodash from 'lodash';
+import filterInvalidTypeNameChar from "./filterInvalidTypeNameChar.mjs";
 
 
 export default function extractJSDocContent(content: swaggerJSDoc.OAS3Definition) {
@@ -24,7 +25,8 @@ function generateCommonSchemas(schemas: NonNullable<swaggerJSDoc.OAS3Definition[
       }
       // console.log(' ===== origin data =====');
       // console.log(schmeContent);
-      obj[schemaName] = schemaToDataType(schemaName, schmeContent);
+      const iDataType = schemaToDataType(schemaName, schmeContent);
+      obj[iDataType?.name!] = iDataType;
       // console.log(' ===== restruct struct =====');
       // console.log(obj[schemaName]);
       // console.log(`========== schema:${schemaName} end ==========`);
@@ -36,7 +38,7 @@ function generateCommonSchemas(schemas: NonNullable<swaggerJSDoc.OAS3Definition[
 function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference | swaggerJSDoc.Schema | undefined): API.DataType | null {
   if(!schemaType) return null;
   if (schemaType?.$ref) {
-    return { name: typeName, type: schemaType.$ref.split('/').pop(), required: true };
+    return { name: filterInvalidTypeNameChar(typeName), type: filterInvalidTypeNameChar(schemaType.$ref.split('/').pop()), required: true };
   }
   const schema = schemaType as swaggerJSDoc.Schema;
   const { type, description, properties, nullable, format, items, ...restProps } = schema;
@@ -46,12 +48,15 @@ function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference |
     restProps.format = format;
   }
   const obj: API.DataType = {
-    name: typeName,
+    name: filterInvalidTypeNameChar(typeName),
     type: schema.type,
     required: !nullable,
     infos: Object.keys(restProps).length ? [JSON.stringify(restProps)] : undefined,
     description,
   };
+  // if (!['string', 'integer', 'boolean', 'array', 'object', 'number'].includes(obj.type)) {
+  //   console.log('detect abnormal type:', obj.type, obj);
+  // }
   if (type === 'array') {
     obj.arrayElementType = schemaToDataType('elementTypeName', items);
   }
@@ -91,9 +96,12 @@ function scanPaths(paths?: swaggerJSDoc.Paths) {
             }
             const { name, schema, required, in: location } = param as swaggerJSDoc.Parameter;
             const dataType = schemaToDataType(name, schema) as API.Parameter;
-            if(location === 'query' && schema?.$ref) {
-              // url上为引用类型的参数，实际情况 这个对象即整个query对象
-              dataType.name = '';
+            // if(location === 'query' && schema?.$ref) {
+            //   // url上为引用类型的参数，实际情况 这个对象即整个query对象
+            //   dataType.name = '';
+            // }
+            if(schema?.$ref) {
+              console.log('trigger warning feature', schema);
             }
             dataType.in = location;
             dataType.required = required;

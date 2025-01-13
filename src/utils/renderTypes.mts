@@ -3,67 +3,65 @@ import mapTypeToTSType from './mapTypeToTSType.mjs';
 import indentHOF from './indent.mjs';
 
 
+type FullUserConfig = UserConfig & {
+  beforePathProcess: NonNullable<UserConfig['beforePathProcess']>;
+  onPathIndexRender: NonNullable<UserConfig['onPathIndexRender']>;
+}
 let indent = (level: number) => '';
+let userConfig = {} as FullUserConfig;
+
+function fullfillUserConfig(config: UserConfig): FullUserConfig {
+  if (!config.beforePathProcess) {
+    config.beforePathProcess = (a) => a;
+  }
+  if (!config.onPathIndexRender) {
+    config.onPathIndexRender = (a: string, b: string) => `${a} ${b}`;
+  }
+  return config as FullUserConfig;
+}
 
 export default function renderTypes(paths: API.EndPoint[], dataTypes: Record<string, API.DataType | null>, config: UserConfig) {
-  indent = (level: number) => indentHOF(config.indentSize, level);
-  let outputPaths: string[] = [];
-  const metionedSchema: Record<string, boolean> = {};
+  userConfig = fullfillUserConfig(config);
+  indent = (level: number) => indentHOF(userConfig.indentSize, level);
+  const outputPaths: string[] = [];
+  const outputPathIOTypes: string[] = [];
+  const mentionedSchema: Record<string, boolean> = {};
   // generate paths type
   paths.forEach(originPathCfg => {
     // console.log(originPathCfg);
-    const pathConfig = (config.beforePathProcess ?? (a => a))(originPathCfg, dataTypes);
+    const pathConfig = userConfig.beforePathProcess(originPathCfg, dataTypes);
     if (!pathConfig) {
       // console.log(`${originPathCfg.url} ignored by user config`);
       return;
     }
     const { url, method, parameters, response } = pathConfig;
 
-    const { divider, type: requestType } = generateParameterTsType(parameters, method, config.typeNameSpace, metionedSchema);
+    const { divider, type: requestType } = generateParameterTsType(parameters, method, userConfig.typeNameSpace, mentionedSchema);
 
-
-    // const responseType = mapTypeToTSType(response?.type!, userConfig.typeNameSpacePrefix);
-    const { type: responseType } = response ? generateParameterTsType([response as API.Parameter], method, config.typeNameSpace, metionedSchema) : { type: null };
+    const { type: responseType } = response ? generateParameterTsType([response as API.Parameter], method, userConfig.typeNameSpace, mentionedSchema) : { type: null };
     // if (response?.type === 'array') {
     //   console.log('array check:', responseType);
     // }
-    const apiDefine = (config.onPathTypeRender ?? defaultPathTypeRender)(method, url, requestType, responseType, divider, pathConfig.description);
+    const apiDefine = pathTypingRender(method, url, requestType, responseType, divider, pathConfig.description);
 
 
     outputPaths.push(`${indent(1)}/** ${pathConfig.description ?? ''} */\n${indent(1)}${apiDefine}`);
+    outputPathIOTypes.push(`${indent(1)}"${method} ${url}": [${requestType}, ${responseType}]`);
   });
 
 
 
   // console.log('start generate types')
-  let typesContent = '';
-  const dataTypeNames = Object.keys(metionedSchema);
-  const renderedMap: Record<string, boolean> = {};
-  for (const typeName of dataTypeNames) {
-    if (renderedMap[typeName]) continue;
-    // console.log(`========== ${typeName} ==========`);
-    // console.log(dataTypes[typeName]);
-    if(!dataTypes[typeName]) {
-      console.log('detect null dataType:', typeName);
-    }
-    typesContent += generateRootTypeContent(dataTypes[typeName], dataTypeNames);
-    renderedMap[typeName] = true;
-  }
+  const typesContentTemplate = renderTypingContent(dataTypes, mentionedSchema);
 
-  // console.log(typesContent);
-  const typesContentTemplate = `/**
-* ! 文件由脚本生成，不要直接修改
-*/
-declare namespace ${config.typeNameSpace} {
-${typesContent}
-}
-`
-  config.onGenerateFiles(outputPaths, typesContentTemplate);
+
+  userConfig.onGenerateFiles(outputPaths, typesContentTemplate, renderPathToIOTypeMap(outputPathIOTypes));
 }
 
 
-function defaultPathTypeRender(method: string, url: string, requestType: string | null, responseType: string | null, divider: Record<string, string[]>, description?: string) {
-  const apiDefine = `"${method} ${url}": defineAPI<${requestType}, ${responseType}>("${url}", "${method}"${Object.keys(divider).length ? `, {divider: ${JSON.stringify(divider)}}` : ''})`
+function pathTypingRender(method: string, url: string, requestType: string | null, responseType: string | null, divider: Record<string, string[]>, description?: string) {
+  const pathIndex = userConfig.onPathIndexRender(method, url);
+  const apiDefine = `"${pathIndex}": defineAPI<${requestType}, ${responseType}>("${url}", "${method}"${Object.keys(divider).length ? `, {divider: ${JSON.stringify(divider)}}` : ''})`
 
   return apiDefine;
   // return `${space(2)}/** ${description} */\n${space(2)}${apiDefine}`
@@ -128,8 +126,8 @@ function appendDesc(dataType: API.DataType, indentLevel: number = 2) {
 
 
 function generateRootTypeContent(dataType: API.DataType | null, dataTypeRenderList: string[]) {
-  if(!dataType) {
-    return  '';
+  if (!dataType) {
+    return '';
   }
   const formatType = (parameter: API.DataType) => {
     const tempNamePrefixTag = '#.#'
@@ -155,4 +153,39 @@ function generateRootTypeContent(dataType: API.DataType | null, dataTypeRenderLi
 
   return `${indent(1)}interface ${dataType.name} {\n\n${propertyStr}${indent(1)}}\n\n\n`;
 
+}
+
+
+/**
+ * 生成API namespace 类型定义库
+ */
+function renderTypingContent(dataTypes: Record<string, API.DataType | null>, mentionedSchema: Record<string, boolean>) {
+  let typesContent = '';
+  const dataTypeNames = Object.keys(mentionedSchema);
+  const renderedMap: Record<string, boolean> = {};
+  for (const typeName of dataTypeNames) {
+    if (renderedMap[typeName]) continue;
+    if (!dataTypes[typeName]) {
+      console.log('detect null dataType:', typeName);
+    }
+    typesContent += generateRootTypeContent(dataTypes[typeName], dataTypeNames);
+    renderedMap[typeName] = true;
+  }
+  const typesContentTemplate = `/**
+* ! 文件由脚本生成，不要直接修改
+*/
+declare namespace ${userConfig.typeNameSpace} {
+${typesContent}
+}`;
+  return typesContentTemplate;
+}
+
+function renderPathToIOTypeMap(items: string[]) {
+
+  const contentTemplate = `
+type APITypeTuple = {
+${items.join(',\n')}
+}
+`;
+  return contentTemplate;
 }

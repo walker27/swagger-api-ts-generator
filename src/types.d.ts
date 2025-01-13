@@ -37,7 +37,9 @@ declare interface UserConfig {
 
   beforePathProcess?(path: API.EndPoint, dataTypes: Record<string, API.DataType | null>): API.EndPoint | null;
 
-  onPathTypeRender?(method: string, url: string, requestType: string | null, responseType: string | null, divider: Record<string, string[]>): string;
+  // onPathTypeRender?(method: string, url: string, requestType: string | null, responseType: string | null, divider: Record<string, string[]>): string;
 
-  onGenerateFiles(pathDefineStrList: string[], schemasContent: string): void;
+  onPathIndexRender?(method: string, url: string): string;
+
+  onGenerateFiles(pathDefineStrList: string[], schemasContent: string, pathDefineTuple: string): void;
 }

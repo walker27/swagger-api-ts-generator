@@ -1,5 +1,6 @@
-import { Schema, Spec, Path, Reference, Parameter  } from "swagger-schema-official";
+import { Schema, Spec, Path, Reference, Parameter } from "swagger-schema-official";
 import lodash from 'lodash';
+import filterInvalidTypeNameChar from "./filterInvalidTypeNameChar.mjs";
 
 
 export default function extractOfficalSwaggerContent(content: Spec) {
@@ -24,7 +25,8 @@ function generateCommonSchemas(schemas: { [definitionsName: string]: Schema } | 
       }
       // console.log(' ===== origin data =====');
       // console.log(schmeContent);
-      obj[schemaName] = schemaToDataType(schemaName, schmeContent);
+      const iDataType = schemaToDataType(schemaName, schmeContent);
+      obj[iDataType?.name!] = iDataType;
       // console.log(' ===== restruct struct =====');
       // console.log(obj[schemaName]);
       // console.log(`========== schema:${schemaName} end ==========`);
@@ -34,24 +36,27 @@ function generateCommonSchemas(schemas: { [definitionsName: string]: Schema } | 
 }
 
 function schemaToDataType(typeName: string, schemaType: Schema | Parameter): API.DataType | null {
-  if(!schemaType) return null;
+  if (!schemaType) return null;
   if (schemaType?.$ref) {
-    return { name: typeName, type: schemaType.$ref.split('/').pop(), required: false };
+    return { name: filterInvalidTypeNameChar(typeName), type: filterInvalidTypeNameChar(schemaType.$ref.split('/').pop()), required: false };
   }
   const schema = schemaType;
   const { type, description, properties, required: requiredPropertyList, format, items, ...restProps } = schema;
   // console.log('===== origin data =====');
   // console.log(content);
-  if(format?.indexOf('int') === -1) {
+  if (format?.indexOf('int') === -1) {
     restProps.format = format;
   }
   const obj: API.DataType = {
-    name: typeName,
+    name: filterInvalidTypeNameChar(typeName),
     type: schema.type,
     required: typeof requiredPropertyList === 'boolean' ? requiredPropertyList : false,
     infos: Object.keys(restProps).length ? [JSON.stringify(restProps)] : undefined,
     description,
   };
+  // if (!['string', 'integer', 'boolean', 'array', 'object', 'number'].includes(obj.type)) {
+  //   console.log('detect abnormal type:', obj.type, obj);
+  // }
   if (type === 'array') {
     obj.arrayElementType = schemaToDataType('elementTypeName', items);
   }
@@ -59,7 +64,7 @@ function schemaToDataType(typeName: string, schemaType: Schema | Parameter): API
     obj.properties = Object.entries(properties)
       .map(([propName, propContent]) => {
         const property = schemaToDataType(propName, propContent);
-        if(property && Array.isArray(requiredPropertyList) && requiredPropertyList?.find(name => name === property.name)) {
+        if (property && Array.isArray(requiredPropertyList) && requiredPropertyList?.find(name => name === property.name)) {
           property.required = true;
         }
         return property;
@@ -102,8 +107,8 @@ function scanPaths(paths?: { [pathName: string]: Path }) {
             //   // url上为引用类型的参数，实际情况 这个对象即整个query对象
             //   dataType.name = '';
             // }
-            // todo 在body上为引用类型的参数，实际情况 这个对象即整个body对象
-            if(location === 'body' && schema?.$ref) {
+            // 在body上为引用类型的参数，实际情况 这个对象即整个body对象
+            if (location === 'body' && (schema?.$ref || schema?.items?.$ref)) {
               // url上为引用类型的参数，实际情况 这个对象即整个query对象
               dataType.name = '';
             }

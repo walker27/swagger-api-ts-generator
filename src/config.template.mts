@@ -57,9 +57,13 @@ const config: UserConfig = {
    * output
    *  - service-name-a
    *  | - api.d.ts
+   *  | - interceptors.ts
+   *  | - path-types.d.ts
    *  | - index.ts
    *  - service-name-b
    *  | - api.d.ts
+   *  | - interceptors.ts
+   *  | - path-types.d.ts
    *  | - index.ts
    *  - index.ts
    *  - utils.ts

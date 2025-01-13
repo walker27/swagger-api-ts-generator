@@ -8,6 +8,8 @@ export default function mapTypeToTSType(dataType: Pick<API.DataType, 'type' | 'a
       return 'void';
     case 'string':
       return 'string';
+    case 'object':
+      return '{}';
     // case 'string[]':
     //   return 'string[]';
     case 'file':

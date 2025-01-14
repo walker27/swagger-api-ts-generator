@@ -1,7 +1,17 @@
+import fs from "node:fs";
+import path from "node:path";
 
+/**
+ * 生成 root/utils.ts
+ */
+export default function generateRootUtilsFile(rootFolderPath: string) {
+  const filePath = path.resolve(rootFolderPath, `utils.ts`);
+  if(!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, utilsTsTemplate);
+  }
+}
 
-
-const utilsTsTemplate = `/**
+export const utilsTsTemplate = `/**
 * 此文件可以按照工程情况调整，脚本只会在没有生成该文件的情况下生成
 */
 
@@ -130,6 +140,3 @@ function parameterDividerHOC(url: string, httpMethod: HTTPMethod, divider: APIHe
 }
 `
 
-export default function getUtilsFileContent () {
-  return utilsTsTemplate;
-}

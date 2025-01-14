@@ -1,18 +1,44 @@
 import axios from "axios";
 import { fileURLToPath } from 'node:url'
 import path, { dirname } from 'node:path'
-import fs from 'node:fs'
-import getUtilsFileContent from "./utils/getUtilsFileContent.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+/** 
+ * 生成文件内容
+ * 生成的文件目录示例:
+ * root
+ *  - service-name-a
+ *  | - api.d.ts
+ *  | - path-types.ts
+ *  | - api.ts
+ *  | - interceptors.ts
+ *  | - index.ts
+ *  | - defineAPI.ts
+ *  - service-name-xxx
+ *  | ...
+ *  ...
+ *  - index.ts
+ *  - utils.ts
+ */
 
 const config: UserConfig = {
+  /** 是否只生成定义文件，默认为false */
+  typesOnly: false,
   /** 缩进尺寸 */
   indentSize: 2,
   /** API 命名空间前缀，用于 declare namespace {typeNameSpace} {} */
   // todo
   typeNameSpace: '__',
+  /** 所有服务所在的文件夹 */
+  // todo
+  rootFolderPath: path.resolve(__dirname, '..', '__'),
+  /** 当前服务的文件夹名称 */
+  // todo
+  serviceFolderName: '__',
+  /** 服务在代码中的变量名称 */
+  // todo
+  serviceVariableName: '__',
   /** 加载swagger json */
   async loadJSON() {
     // todo
@@ -57,132 +83,8 @@ const config: UserConfig = {
   //     debugger;
   //   }
   // },
-  /** 
-   * 生成文件内容
-   * 生成的文件目录示例:
-   * output
-   *  - service-name-a
-   *  | - api.d.ts
-   *  | - interceptors.ts
-   *  | - path-types.d.ts
-   *  | - index.ts
-   *  - service-name-b
-   *  | - api.d.ts
-   *  | - interceptors.ts
-   *  | - path-types.d.ts
-   *  | - index.ts
-   *  - index.ts
-   *  - utils.ts
-   */
-  onGenerateFiles(pathDefineStrList: string[], schemasContent: string, pathDefineTuple: string) {
-    // 填写__的内容
-    // todo
-    const apiRootFolderPath = path.resolve(__dirname, '..', '__')
-    // todo 按照文件夹命名规则填写
-    const serviceFolderName = '__'
-    // todo 按照驼峰命名规则填写
-    const serviceVarName = '__'
-
-    const utilsFilePath = path.resolve(apiRootFolderPath, `utils.ts`)
-    const serviceFolderPath = path.resolve(apiRootFolderPath, serviceFolderName)
-    const typesFilePath = path.resolve(serviceFolderPath, `api.d.ts`)
-    const apiIndexPath = path.resolve(serviceFolderPath, `index.ts`)
-    const apiInterceptorPath = path.resolve(serviceFolderPath, `interceptors.ts`)
-    const apiPathTypeTuple = path.resolve(serviceFolderPath, `path-types.d.ts`)
-    const apiRootIndexPath = path.resolve(apiRootFolderPath, `index.ts`)
-
-    // 生成服务文件夹
-    if (!fs.existsSync(serviceFolderPath)) {
-      fs.mkdirSync(serviceFolderPath, { recursive: true })
-    }
-
-    // 生成ts定义文件
-    fs.writeFileSync(typesFilePath, schemasContent);
-
-    // 生成API文件
-    const apiFileContent = apiFileTemplate(pathDefineStrList)
-    fs.writeFileSync(apiIndexPath, apiFileContent)
-
-    // 生成path-types.d.ts文件
-    fs.writeFileSync(apiPathTypeTuple, pathDefineTuple);
-
-    // 生成interceptors.ts文件
-    if (!fs.existsSync(apiInterceptorPath)) {
-      fs.writeFileSync(apiInterceptorPath, apiInterceptorsFileTemplate());
-    }
-
-    // 生成utils文件
-    if (!fs.existsSync(utilsFilePath)) {
-      fs.writeFileSync(utilsFilePath, getUtilsFileContent());
-    }
-
-    // 生成或追加root/index.ts的引用
-    if (!fs.existsSync(apiRootIndexPath)) {
-      fs.writeFileSync(apiRootIndexPath, `\n\nconst server = {\n}\n\nexport default server;`);
-    }
-    const serverIndexContent = fs.readFileSync(apiRootIndexPath, 'utf-8');
-    const serverIndexLines = serverIndexContent.split('\n');
-    const importLine = `import ${serviceVarName} from './${serviceFolderName}'`;
-    let needAddImport = true;
-    const part = serverIndexLines.map((line) => {
-      if (line === importLine) {
-        needAddImport = false;
-        return line;
-      }
-      if (line === 'const server = {') {
-        return line + `\n  ${serviceVarName},`;
-      }
-      return line;
-    }).join('\n');
-    if (needAddImport) {
-      const oContent = `${importLine}\n${part}`;
-      fs.writeFileSync(apiRootIndexPath, oContent);
-    }
-  },
-
 };
 
 
 export default config;
 
-
-function apiFileTemplate(paths: string[]) {
-
-  return `/**
-* ! 文件由脚本生成，不要直接修改
-*/
-import defineAPIHOC from "../utils";
-import interceptors from "./interceptors";
-
-const defineAPI = defineAPIHOC("", interceptors);
-
-const apiMap = {
-${paths.join(',\n')}
-}
-
-type APIMap = typeof apiMap;
-type APIPaths = keyof APIMap;
-
-export default function callAPI<Path extends APIPaths>(path: Path, params?: Parameters<APIMap[Path]>[0], option?: Parameters<APIMap[Path]>[1]): ReturnType<APIMap[Path]> {
-  // @ts-ignore
-  return apiMap[path](params, option);
-}
-`;
-}
-
-function apiInterceptorsFileTemplate() {
-  return `/**
-* ! 文件由脚本生成，不要直接修改
-*/
-/// <reference types="./path-types" />
-import { Interceptors } from "../utils";
-
-const __ = undefined;
-const interceptors = new Interceptors<APITypeTuple>();
-
-export default interceptors;
-
-// interceptors.add(path, __, __);
-
-`;
-}

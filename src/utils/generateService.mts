@@ -1,6 +1,16 @@
 
 import mapTypeToTSType from './mapTypeToTSType.mjs';
 import indentHOF from './indent.mjs';
+import path from 'node:path';
+import fs from 'node:fs';
+import generateAPITypesFile from './fs.service.api-types.mjs';
+import generateRootUtilsFile from './fs.root.utils.mjs';
+import generateServiceDefineAPIFile from './fs.service.defineAPI.mjs';
+import generateServiceInterceptorFile from './fs.service.interceptors.mjs';
+import generateServiceAPIMapFile from './fs.service.api-map.mjs';
+import generateServiceEnumsFile from './fs.service.enums.mjs';
+import generateServiceIndexFile from './fs.service.index.mjs';
+import generateRootIndexFile from './fs.root.index.mjs';
 
 
 type FullUserConfig = UserConfig & {
@@ -24,7 +34,7 @@ function fullfillUserConfig(config: UserConfig): FullUserConfig {
   return config as FullUserConfig;
 }
 
-export default function renderTypes(paths: API.EndPoint[], dataTypes: Record<string, API.DataType | null>, config: UserConfig) {
+export default function generateService(paths: API.EndPoint[], dataTypes: Record<string, API.DataType | null>, config: UserConfig) {
   userConfig = fullfillUserConfig(config);
   indent = (level: number) => indentHOF(userConfig.indentSize, level);
   const outputPaths: string[] = [];
@@ -52,13 +62,38 @@ export default function renderTypes(paths: API.EndPoint[], dataTypes: Record<str
     outputPathIOTypes.push(`${indent(1)}"${method} ${url}": [${requestType}, ${responseType}]`);
   });
 
-
+  
 
   // console.log('start generate types')
-  const typesContentTemplate = renderSchemasFileContent(dataTypes, mentionedSchema);
+  const [typesContent, enumsContent] = renderSchemasFileContent(dataTypes, mentionedSchema);
 
+  const rootFolderPath = userConfig.rootFolderPath;
+  const serviceFolderPath = path.resolve(rootFolderPath, userConfig.serviceFolderName);
 
-  userConfig.onGenerateFiles(outputPaths, typesContentTemplate, renderPathToIOTypeMap(outputPathIOTypes));
+  // 递归生成目录 root/service
+  if(!fs.existsSync(serviceFolderPath)) {
+    fs.mkdirSync(serviceFolderPath, { recursive: true });
+  }
+
+  generateAPITypesFile(serviceFolderPath, userConfig, typesContent);
+
+  if(userConfig.typesOnly) return;
+
+  generateRootUtilsFile(rootFolderPath);
+
+  generateServiceDefineAPIFile(serviceFolderPath);
+
+  generateServiceInterceptorFile(serviceFolderPath, outputPathIOTypes);
+
+  generateServiceAPIMapFile(serviceFolderPath, outputPaths);
+
+  generateServiceEnumsFile(serviceFolderPath, enumsContent);
+
+  generateServiceIndexFile(serviceFolderPath);
+
+  generateRootIndexFile(rootFolderPath, userConfig.serviceVariableName, userConfig.serviceFolderName);
+
+  // userConfig.onGenerateFiles(outputPaths, typesContentTemplate, renderPathToIOTypeMap(outputPathIOTypes));
 }
 
 
@@ -67,7 +102,6 @@ function pathTypingRender(method: string, url: string, requestType: string | nul
   const apiDefine = `"${pathIndex}": defineAPI<${requestType}, ${responseType}>("${url}", "${method}"${Object.keys(divider).length ? `, {divider: ${JSON.stringify(divider)}}` : ''})`
 
   return apiDefine;
-  // return `${space(2)}/** ${description} */\n${space(2)}${apiDefine}`
 }
 
 /** 参数位置分流器, 用于区分字段是在path、query、body等位置上 */
@@ -166,30 +200,36 @@ function renderSchemasFileContent(dataTypes: Record<string, API.DataType | null>
   let typesContent = '';
   const dataTypeNames = Object.keys(mentionedSchema);
   const renderedMap: Record<string, boolean> = {};
+  let enumsContent = '';
   for (const typeName of dataTypeNames) {
     if (renderedMap[typeName]) continue;
     if (!dataTypes[typeName]) {
       console.log('detect null dataType:', typeName);
     }
     typesContent += renderSchema(dataTypes[typeName], dataTypeNames);
+    enumsContent += renderEnumDataTypeAsTsEnum(dataTypes[typeName]!);
     renderedMap[typeName] = true;
   }
-  const typesContentTemplate = `/**
-* ! 文件由脚本生成，不要直接修改
-*/
-/** */
-declare namespace ${userConfig.typeNameSpace} {
-${typesContent}
-}`;
-  return typesContentTemplate;
+  return [typesContent, enumsContent];
 }
 
-function renderPathToIOTypeMap(items: string[]) {
 
-  const contentTemplate = `
-type APITypeTuple = {
-${items.join(',\n')}
-}
-`;
-  return contentTemplate;
+function renderEnumDataTypeAsTsEnum(dataType: API.DataType) {
+  if(!dataType?.enums) return '';
+  if (dataType.enums.length === 0) return '';
+  let allEnumIsObject = true;
+  const enumValueStrList = [];
+  for (const enumItem of dataType.enums) {
+    if (typeof enumItem === 'object' && enumItem.name) {
+      allEnumIsObject = true && allEnumIsObject;
+      enumValueStrList.push(`${indent(1)}/** ${enumItem.description} */\n${indent(1)}${enumItem.name}: ${JSON.stringify(enumItem.value)}`);
+    } else {
+      allEnumIsObject = false && allEnumIsObject;
+    }
+  }
+  if(!allEnumIsObject) return '';
+  dataType.description = `same with ${userConfig.typeNameSpace}.${dataType.name} ` + dataType.description;
+  const exportEnumStr = `export enum ${dataType.name} {\n${enumValueStrList.join(',\n')}}`;
+
+  return `${appendDesc(dataType, 1)}${exportEnumStr}\n\n`;
 }

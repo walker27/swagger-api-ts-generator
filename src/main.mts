@@ -3,7 +3,7 @@ import { Spec } from "swagger-schema-official";
 import extractJSDocContent from "./utils/extractJSDocContent.mjs";
 import extractOfficalSwaggerContent from "./utils/extractOfficialSwaggerContent.mjs";
 import getConfigFile from "./utils/getConfigFile.mjs";
-import renderTypes from "./utils/renderTypes.mjs";
+import generateService from "./utils/generateService.mjs";
 
 (async function main() {
 
@@ -39,8 +39,7 @@ import renderTypes from "./utils/renderTypes.mjs";
   }
 
   // paths, dataTypes => files
-  renderTypes(paths, dataTypes, config);
-
+  generateService(paths, dataTypes, config);
 
   console.log('done');
 

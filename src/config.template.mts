@@ -51,7 +51,7 @@ const config: UserConfig = {
   // onPathIndexRender(method: string, url: string) {
   //   return `${method} ${url}`;
   // },
-  /** 可以在这里修改schema以符合前端代码真是的需求 */
+  /** 可以在这里修改schema以符合前端代码的真实需求 */
   // beforeRenderSchema(schema: API.DataType) {
   //   if(schema.name === 'xxxx') {
   //     debugger;
@@ -152,8 +152,9 @@ function apiFileTemplate(paths: string[]) {
 * ! 文件由脚本生成，不要直接修改
 */
 import defineAPIHOC from "../utils";
+import interceptors from "./interceptors";
 
-const defineAPI = defineAPIHOC("");
+const defineAPI = defineAPIHOC("", interceptors);
 
 const apiMap = {
 ${paths.join(',\n')}

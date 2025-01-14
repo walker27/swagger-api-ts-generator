@@ -24,6 +24,8 @@ declare namespace API {
     arrayElementType?: DataType | null;
     /** 是否必定存在或必填 true: 必填或存在 */
     required?: boolean,
+    /** 枚举值列表 */
+    enums?: any[],
   }
 }
 

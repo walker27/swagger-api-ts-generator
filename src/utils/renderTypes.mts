@@ -32,7 +32,6 @@ export default function renderTypes(paths: API.EndPoint[], dataTypes: Record<str
   const mentionedSchema: Record<string, boolean> = {};
   // generate paths type
   paths.forEach(originPathCfg => {
-    // console.log(originPathCfg);
     const pathConfig = userConfig.beforePathProcess(originPathCfg, dataTypes);
     if (!pathConfig) {
       // console.log(`${originPathCfg.url} ignored by user config`);
@@ -152,7 +151,6 @@ function renderSchema(dataType: API.DataType | null, dataTypeRenderList: string[
     return str;
   }
   const propertyStr = dataType.properties?.map(property => {
-
     return `${appendDesc(property)}${indent(2)}${property.name}${!property.required ? '?' : ''}: ${formatType(property)};\n\n`
   }).join('');
 
@@ -179,6 +177,7 @@ function renderSchemasFileContent(dataTypes: Record<string, API.DataType | null>
   const typesContentTemplate = `/**
 * ! 文件由脚本生成，不要直接修改
 */
+/** */
 declare namespace ${userConfig.typeNameSpace} {
 ${typesContent}
 }`;

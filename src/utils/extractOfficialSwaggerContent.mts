@@ -41,7 +41,7 @@ function schemaToDataType(typeName: string, schemaType: Schema | Parameter): API
     return { name: filterInvalidTypeNameChar(typeName), type: filterInvalidTypeNameChar(schemaType.$ref.split('/').pop()), required: false };
   }
   const schema = schemaType;
-  const { type, description, properties, required: requiredPropertyList, format, items, ...restProps } = schema;
+  const { type, description, properties, required: requiredPropertyList, format, items, enum: valueEnum, ...restProps } = schema;
   // console.log('===== origin data =====');
   // console.log(content);
   if (format?.indexOf('int') === -1) {
@@ -52,6 +52,7 @@ function schemaToDataType(typeName: string, schemaType: Schema | Parameter): API
     type: schema.type,
     required: typeof requiredPropertyList === 'boolean' ? requiredPropertyList : false,
     infos: Object.keys(restProps).length ? [JSON.stringify(restProps)] : undefined,
+    enums: valueEnum,
     description,
   };
   // if (!['string', 'integer', 'boolean', 'array', 'object', 'number'].includes(obj.type)) {

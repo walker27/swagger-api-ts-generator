@@ -1,6 +1,8 @@
 /** 将一些常态后端类型转换为ts中的类型 */
-export default function mapTypeToTSType(dataType: Pick<API.DataType, 'type' | 'arrayElementType'>, namespacePrefix?: string): string {
-
+export default function mapTypeToTSType(dataType: Pick<API.DataType, 'type' | 'arrayElementType' | 'enums'>, namespacePrefix?: string): string {
+  if(dataType.enums) {
+    return dataType.enums.map(val => JSON.stringify(val)).join(' | ');
+  }
   switch (dataType.type) {
     case undefined:
     case null:

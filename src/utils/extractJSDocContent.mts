@@ -41,7 +41,7 @@ function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference |
     return { name: filterInvalidTypeNameChar(typeName), type: filterInvalidTypeNameChar(schemaType.$ref.split('/').pop()), required: true };
   }
   const schema = schemaType as swaggerJSDoc.Schema;
-  const { type, description, properties, nullable, format, items, ...restProps } = schema;
+  const { type, description, properties, nullable, format, items, enum: valueEnum, ...restProps } = schema;
   // console.log('===== origin data =====');
   // console.log(content);
   if(format?.indexOf('int') === -1) {
@@ -52,6 +52,7 @@ function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference |
     type: schema.type,
     required: !nullable,
     infos: Object.keys(restProps).length ? [JSON.stringify(restProps)] : undefined,
+    enums: valueEnum,
     description,
   };
   // if (!['string', 'integer', 'boolean', 'array', 'object', 'number'].includes(obj.type)) {

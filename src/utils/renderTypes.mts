@@ -6,6 +6,7 @@ import indentHOF from './indent.mjs';
 type FullUserConfig = UserConfig & {
   beforePathProcess: NonNullable<UserConfig['beforePathProcess']>;
   onPathIndexRender: NonNullable<UserConfig['onPathIndexRender']>;
+  beforeRenderSchema: NonNullable<UserConfig['beforeRenderSchema']>;
 }
 let indent = (level: number) => '';
 let userConfig = {} as FullUserConfig;
@@ -16,6 +17,9 @@ function fullfillUserConfig(config: UserConfig): FullUserConfig {
   }
   if (!config.onPathIndexRender) {
     config.onPathIndexRender = (a: string, b: string) => `${a} ${b}`;
+  }
+  if(!config.beforeRenderSchema) {
+    config.beforeRenderSchema = () => {};
   }
   return config as FullUserConfig;
 }
@@ -52,7 +56,7 @@ export default function renderTypes(paths: API.EndPoint[], dataTypes: Record<str
 
 
   // console.log('start generate types')
-  const typesContentTemplate = renderTypingContent(dataTypes, mentionedSchema);
+  const typesContentTemplate = renderSchemasFileContent(dataTypes, mentionedSchema);
 
 
   userConfig.onGenerateFiles(outputPaths, typesContentTemplate, renderPathToIOTypeMap(outputPathIOTypes));
@@ -125,10 +129,11 @@ function appendDesc(dataType: API.DataType, indentLevel: number = 2) {
 }
 
 
-function generateRootTypeContent(dataType: API.DataType | null, dataTypeRenderList: string[]) {
+function renderSchema(dataType: API.DataType | null, dataTypeRenderList: string[]) {
   if (!dataType) {
     return '';
   }
+  userConfig.beforeRenderSchema(dataType);
   const formatType = (parameter: API.DataType) => {
     const tempNamePrefixTag = '#.#'
     const type = mapTypeToTSType(parameter, tempNamePrefixTag);
@@ -159,7 +164,7 @@ function generateRootTypeContent(dataType: API.DataType | null, dataTypeRenderLi
 /**
  * 生成API namespace 类型定义库
  */
-function renderTypingContent(dataTypes: Record<string, API.DataType | null>, mentionedSchema: Record<string, boolean>) {
+function renderSchemasFileContent(dataTypes: Record<string, API.DataType | null>, mentionedSchema: Record<string, boolean>) {
   let typesContent = '';
   const dataTypeNames = Object.keys(mentionedSchema);
   const renderedMap: Record<string, boolean> = {};
@@ -168,7 +173,7 @@ function renderTypingContent(dataTypes: Record<string, API.DataType | null>, men
     if (!dataTypes[typeName]) {
       console.log('detect null dataType:', typeName);
     }
-    typesContent += generateRootTypeContent(dataTypes[typeName], dataTypeNames);
+    typesContent += renderSchema(dataTypes[typeName], dataTypeNames);
     renderedMap[typeName] = true;
   }
   const typesContentTemplate = `/**

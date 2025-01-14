@@ -41,5 +41,7 @@ declare interface UserConfig {
 
   onPathIndexRender?(method: string, url: string): string;
 
+  beforeRenderSchema?(schema: API.DataType): void;
+
   onGenerateFiles(pathDefineStrList: string[], schemasContent: string, pathDefineTuple: string): void;
 }

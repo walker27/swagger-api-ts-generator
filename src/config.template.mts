@@ -51,6 +51,12 @@ const config: UserConfig = {
   // onPathIndexRender(method: string, url: string) {
   //   return `${method} ${url}`;
   // },
+  /** 可以在这里修改schema以符合前端代码真是的需求 */
+  // beforeRenderSchema(schema: API.DataType) {
+  //   if(schema.name === 'xxxx') {
+  //     debugger;
+  //   }
+  // },
   /** 
    * 生成文件内容
    * 生成的文件目录示例:

@@ -82,5 +82,5 @@ function generateNewConfigFile(serviceFolderName: string) {
       .replace('__SERVICE_FOLDER_NAME__', serviceFolderName)
       .replace('__SERVICE_VAR_NAME__', serviceVarName)
   );
-  console.log('create service config success');
+  console.log(`create service config success. please fix/confirm \x1b[43m todo \x1b[0m part`);
 }

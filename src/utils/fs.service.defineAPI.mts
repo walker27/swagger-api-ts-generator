@@ -7,7 +7,9 @@ import path from 'node:path'
  */
 export default function generateServiceDefineAPIFile(serviceFolderPath: string) {
   const filePath = path.resolve(serviceFolderPath, `defineAPI.ts`);
-  if(!fs.existsSync(filePath)) {
+  if (!fs.existsSync(filePath)) {
+    const relativePath = filePath.split(path.sep).slice(-3).join(path.sep);
+    console.log(`\x1b[41mNeed Modify\x1b[0m \x1b[32m${relativePath}\x1b[0m need confirm. please fix/confirm \x1b[43m todo \x1b[0m part`);
     fs.writeFileSync(filePath, FILE_TEMPLATE);
   }
 }

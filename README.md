@@ -15,8 +15,27 @@
 4. generate files
 
 # 使用方法
-1. 复制一份config.template.mjs 取名为config.xxx.mjs 进行修改
-2. 执行node main.mjs 程序为自动寻找同级目录下格式为config.xxx.mjs的文件，并会在控制台列举供以选择，选择完成后会自动生成文件
+1. 执行`node main.mjs new service-name`生成配置文件
+2. 填写配置文件中缺失的字段
+3. 执行`node main.mjs` 在工程中生成文件
 
 ## tips
-* 对于低版本的node，如node16, @inquirer/prompts 包需要安装v3.x 的版本
+* for low version node(e.g. node16), use `@inquirer/prompts@3.x`
+
+## Generated Files Structure
+```
+root
+ - service-name-a
+ | - api.d.ts
+ | - path-types.ts
+ | - apiMap.ts
+ | - interceptors.ts
+ | - index.ts
+ | - enums.ts
+ | - defineAPI.ts
+ - service-name-xxx
+ | ...
+ ...
+ - index.ts
+ - utils.ts
+```

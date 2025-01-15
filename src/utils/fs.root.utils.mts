@@ -19,11 +19,11 @@ export const utilsTsTemplate = `/**
 // todo
 type RequestPartOptions = Parameters<typeof request>[1];
 
-type RequestInterceptor<T> = (params: T, cfg?: RequestPartOptions) => [T, RequestPartOptions?];
+type RequestInterceptor = <T>(params: T, cfg?: RequestPartOptions) => [T, RequestPartOptions?];
 
-type ResponseInterceptor<T, K> = (res: T, params: K, cfg?: RequestPartOptions) => T;
+type ResponseInterceptor = <T, K>(res: T, params: K, cfg?: RequestPartOptions) => T;
 
-const defaultReqInterceptor: RequestInterceptor<any> = (params, options) => [params, options]
+const defaultReqInterceptor: RequestInterceptor = (params, options) => [params, options]
 const identity = <T>(t: T) => t;
 
 export default function defineAPIHOC(urlPrefix: string, interceptors?: Interceptors<any>) {
@@ -53,12 +53,12 @@ export default function defineAPIHOC(urlPrefix: string, interceptors?: Intercept
 
 
 export class Interceptors<Group extends Record<any, [any, any]>> {
-  private requestObserverMap: Map<keyof Group, RequestInterceptor<any>> = new Map();
-  private responseObserverMap: Map<keyof Group, ResponseInterceptor<any, any>> = new Map();
+  private requestObserverMap: Map<keyof Group, RequestInterceptor> = new Map();
+  private responseObserverMap: Map<keyof Group, ResponseInterceptor> = new Map();
 
   public add<IPath extends keyof Group>(key: IPath,
-    requestInterceptor?: RequestInterceptor<Group[IPath][0]>,
-    responseInterceptor?: ResponseInterceptor<Group[IPath][1], Group[IPath][0]>,
+    requestInterceptor?: RequestInterceptor,
+    responseInterceptor?: ResponseInterceptor,
   ) {
     if(this.requestObserverMap.has(key)) {
       console.warn(\`Request Interceptors: \${key as string} is exist\`);

@@ -4,8 +4,29 @@ import extractJSDocContent from "./utils/extractJSDocContent.mjs";
 import extractOfficalSwaggerContent from "./utils/extractOfficialSwaggerContent.mjs";
 import getConfigFile from "./utils/getConfigFile.mjs";
 import generateService from "./utils/generateService.mjs";
+import fs from 'node:fs';
 
 (async function main() {
+  // if command match `scripts.js new [service-name]`
+  const command = process.argv[2];
+  if (command) {
+    if (command.match(/new/)) {
+      const serviceFolderName = process.argv[3];
+      if (!serviceFolderName) {
+        console.log('请输入服务名称');
+        return;
+      }
+      generateNewConfigFile(serviceFolderName);
+      // get ./utils/config.template.mts content and rename as config.serviceName.mts
+
+
+      return;
+    }
+    console.log('unknown command', command);
+    return;
+  }
+
+  // else 
 
   const config = await getConfigFile();
 
@@ -33,7 +54,7 @@ import generateService from "./utils/generateService.mjs";
     return { dataTypes: null, paths: null };
   })();
 
-  if(!dataTypes || !paths) {
+  if (!dataTypes || !paths) {
     console.log('未检测到swagger 数据');
     return;
   }
@@ -47,3 +68,19 @@ import generateService from "./utils/generateService.mjs";
 
 })()
 
+
+function generateNewConfigFile(serviceFolderName: string) {
+  console.log('try to create service config', serviceFolderName);
+  // service-name to serviceName
+  const serviceVarName = serviceFolderName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+  // get ./utils/config.template.mts content
+  const configTemplate = fs.readFileSync(new URL('./utils/config.template.mjs', import.meta.url), 'utf-8');
+
+  fs.writeFileSync(
+    new URL(`./config.${serviceFolderName}.mjs`, import.meta.url),
+    configTemplate
+      .replace('__SERVICE_FOLDER_NAME__', serviceFolderName)
+      .replace('__SERVICE_VAR_NAME__', serviceVarName)
+  );
+  console.log('create service config success');
+}

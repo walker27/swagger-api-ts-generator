@@ -36,10 +36,10 @@ const config: UserConfig = {
   rootFolderPath: path.resolve(__dirname, '..', '__'),
   /** 当前服务的文件夹名称 */
   // todo
-  serviceFolderName: '__',
+  serviceFolderName: '__SERVICE_FOLDER_NAME__',
   /** 服务在代码中的变量名称 */
   // todo
-  serviceVariableName: '__',
+  serviceVariableName: '__SERVICE_VAR_NAME__',
   /** 加载swagger json */
   async loadJSON() {
     // todo

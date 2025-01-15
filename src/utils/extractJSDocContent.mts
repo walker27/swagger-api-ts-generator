@@ -36,7 +36,7 @@ function generateCommonSchemas(schemas: NonNullable<swaggerJSDoc.OAS3Definition[
 }
 
 function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference | swaggerJSDoc.Schema | undefined): API.DataType | null {
-  if(!schemaType) return null;
+  if (!schemaType) return null;
   if (schemaType?.$ref) {
     return { name: filterInvalidTypeNameChar(typeName), type: filterInvalidTypeNameChar(schemaType.$ref.split('/').pop()), required: true };
   }
@@ -44,7 +44,7 @@ function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference |
   const { type, description, properties, nullable, format, items, enum: valueEnum, ...restProps } = schema;
   // console.log('===== origin data =====');
   // console.log(content);
-  if(format?.indexOf('int') === -1) {
+  if (format?.indexOf('int') === -1) {
     restProps.format = format;
   }
   const obj: API.DataType = {
@@ -60,6 +60,9 @@ function schemaToDataType(typeName: string, schemaType: swaggerJSDoc.Reference |
   // }
   if (type === 'array') {
     obj.arrayElementType = schemaToDataType('elementTypeName', items);
+  }
+  if (format === 'binary') {
+    obj.type = 'file';
   }
   if (properties) {
     obj.properties = Object.entries(properties)
@@ -101,8 +104,8 @@ function scanPaths(paths?: swaggerJSDoc.Paths) {
             //   // url上为引用类型的参数，实际情况 这个对象即整个query对象
             //   dataType.name = '';
             // }
-            if(schema?.$ref) {
-              console.log('trigger warning feature', schema);
+            if (schema?.$ref) {
+              // console.log('trigger warning feature', schema);
             }
             dataType.in = location;
             dataType.required = required;
@@ -112,10 +115,20 @@ function scanPaths(paths?: swaggerJSDoc.Paths) {
 
         // config.requestBody
         if (config.requestBody) {
-          const schema = Object.values((config.requestBody as swaggerJSDoc.RequestBody).content)[0].schema;
-          const parameter = schemaToDataType('', schema) as API.Parameter;
-          parameter.in = 'body';
-          endpoint.parameters.push(parameter);
+          const [schemaName, { schema }] = Object.entries((config.requestBody as swaggerJSDoc.RequestBody).content)[0];
+          const parameter = schemaToDataType('', schema);
+          const pos = schemaName.indexOf("form-data") !== -1 ? 'formData' : 'body';
+          if (parameter) {
+            if (!parameter.name && parameter.properties) {
+              parameter.properties.forEach((prop) => {
+                prop.in = pos;
+              })
+              endpoint.parameters = endpoint.parameters.concat(parameter.properties);
+            } else {
+              parameter.in = pos;
+              endpoint.parameters.push(parameter);
+            }
+          }
         }
 
         // config.responses

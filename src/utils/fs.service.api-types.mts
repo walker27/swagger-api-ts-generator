@@ -6,7 +6,7 @@ import path from 'node:path'
  * @param serviceFolderPath 
  * @param dataTypesContent 
  */
-export default function generateAPITypesFile(serviceFolderPath: string, userConfig: UserConfig, dataTypesContent: string) {
+export default function generateServiceAPITypesFile(serviceFolderPath: string, userConfig: UserConfig, dataTypesContent: string) {
   const filePath = path.resolve(serviceFolderPath, `api.d.ts`);
 
   fs.writeFileSync(filePath, contentTemplate(userConfig.typeNameSpace, dataTypesContent));

@@ -3,7 +3,6 @@ import mapTypeToTSType from './mapTypeToTSType.mjs';
 import indentHOF from './indent.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
-import generateAPITypesFile from './fs.service.api-types.mjs';
 import generateRootUtilsFile from './fs.root.utils.mjs';
 import generateServiceDefineAPIFile from './fs.service.defineAPI.mjs';
 import generateServiceInterceptorFile from './fs.service.interceptors.mjs';
@@ -11,6 +10,7 @@ import generateServiceAPIMapFile from './fs.service.api-map.mjs';
 import generateServiceEnumsFile from './fs.service.enums.mjs';
 import generateServiceIndexFile from './fs.service.index.mjs';
 import generateRootIndexFile from './fs.root.index.mjs';
+import generateServiceAPITypesFile from './fs.service.api-types.mjs';
 
 
 type FullUserConfig = UserConfig & {
@@ -75,7 +75,7 @@ export default function generateService(paths: API.EndPoint[], dataTypes: Record
     fs.mkdirSync(serviceFolderPath, { recursive: true });
   }
 
-  generateAPITypesFile(serviceFolderPath, userConfig, typesContent);
+  generateServiceAPITypesFile(serviceFolderPath, userConfig, typesContent);
 
   if(userConfig.typesOnly) return;
 
@@ -222,14 +222,13 @@ function renderEnumDataTypeAsTsEnum(dataType: API.DataType) {
   for (const enumItem of dataType.enums) {
     if (typeof enumItem === 'object' && enumItem.name) {
       allEnumIsObject = true && allEnumIsObject;
-      enumValueStrList.push(`${indent(1)}/** ${enumItem.description} */\n${indent(1)}${enumItem.name}: ${JSON.stringify(enumItem.value)}`);
+      enumValueStrList.push(`${appendDesc(enumItem, 1)}${indent(1)}${enumItem.name} = ${JSON.stringify(enumItem.value)}`);
     } else {
       allEnumIsObject = false && allEnumIsObject;
     }
   }
   if(!allEnumIsObject) return '';
-  dataType.description = `same with ${userConfig.typeNameSpace}.${dataType.name} ` + dataType.description;
-  const exportEnumStr = `export enum ${dataType.name} {\n${enumValueStrList.join(',\n')}}`;
-
-  return `${appendDesc(dataType, 1)}${exportEnumStr}\n\n`;
+  dataType.description = `${userConfig.typeNameSpace}.${dataType.name} ` + (dataType.description || '');
+  const exportEnumStr = `export enum ${dataType.enumVariableName || dataType.name} {\n${enumValueStrList.join(',\n')}\n}`;
+  return `${appendDesc(dataType, 0)}${exportEnumStr}\n\n`;
 }

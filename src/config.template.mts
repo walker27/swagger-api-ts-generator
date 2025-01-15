@@ -11,9 +11,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
  *  - service-name-a
  *  | - api.d.ts
  *  | - path-types.ts
- *  | - api.ts
+ *  | - apiMap.ts
  *  | - interceptors.ts
  *  | - index.ts
+ *  | - enums.ts
  *  | - defineAPI.ts
  *  - service-name-xxx
  *  | ...
@@ -78,13 +79,49 @@ const config: UserConfig = {
   //   return `${method} ${url}`;
   // },
   /** 可以在这里修改schema以符合前端代码的真实需求 */
-  // beforeRenderSchema(schema: API.DataType) {
-  //   if(schema.name === 'xxxx') {
-  //     debugger;
-  //   }
-  // },
+  /**
+   * tips:
+   *  对于枚举类型, 可以将schema.enums: string[] | number[] 转换成 Array<{ value: string | number, description?: string, name: string}>
+   *  这样脚本就会生成一一对应的枚举类型
+   */
+  beforeRenderSchema(schema: API.DataType) {
+    // const buildEnum = buildEnumHOF(schema);
+    // buildEnum("ExchangeOrderStatus", () => {
+    //   // name 为代码中的变量名, 例如 Enum State { INIT } 中的`INIT`
+    //   schema.enums = [
+    //     { value: 0, name: 'UNKNOWN', description: "未知" },
+    //     { value: 1, name: 'INIT', description: "未开始" },
+    //     { value: 2, name: 'PROCESSING', description: "处理中" },
+    //     { value: 3, name: 'COMPLETED', description: "已完成" },
+    //     { value: 4, name: 'FAILED', description: "失败" },
+    //   ];
+    // })
+
+    // buildEnum("CodeType", () => {
+    //   schema.enumVariableName = "EMAIL_CODE_TYPE";
+    //   // name 为代码中的变量名, 例如 Enum State { INIT } 中的`INIT`
+    //   schema.enums = [
+    //     { value: 0, name: 'UNKNOWN' },
+    //     { value: 1, name: 'LOGIN' },
+    //     { value: 2, name: 'RESET_PASS' },
+    //     { value: 3, name: 'REGISTER' },
+    //     { value: 4, name: 'CHANGE_EMAIL' },
+    //     { value: 5, name: 'ADD_ACCOUNT' },
+    //     { value: 6, name: 'UNKNOWN2' },
+    //   ];
+    // });
+  },
 };
 
 
 export default config;
 
+
+const buildEnumHOF = (schema: API.DataType) => (targetSchemaName: string, f: () => void) => {
+  if (schema.name !== targetSchemaName || !schema.enums) return;
+  const originEnums = schema.enums;
+  f();
+  if (originEnums?.length !== schema.enums.length) {
+    console.warn(`${schema.name} enum length changed`);
+  }
+}

@@ -41,6 +41,8 @@ import generateService from "./utils/generateService.mjs";
   // paths, dataTypes => files
   generateService(paths, dataTypes, config);
 
+  config.onFinished?.();
+
   console.log('done');
 
 })()

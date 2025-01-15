@@ -23,13 +23,15 @@ declare namespace API {
     /** 数组元素类型 */
     arrayElementType?: DataType | null;
     /** 是否必定存在或必填 true: 必填或存在 */
-    required?: boolean,
+    required?: boolean;
     /** 枚举值列表 */
-    enums?: string[] | number[] | Array<EnumIns>,
+    enums?: string[] | number[] | Array<EnumIns>;
+    /** 枚举在代码中的变量名，不填则使用DataType.name */
+    enumVariableName?: string;
   }
   interface EnumIns {
     value: string | number,
-    description: string,
+    description?: string,
     name: string,
   }
 }
@@ -57,6 +59,8 @@ declare interface UserConfig {
   onPathIndexRender?(method: string, url: string): string;
 
   beforeRenderSchema?(schema: API.DataType): void;
+
+  onFinished?(): void;
 
   // onGenerateFiles(pathDefineStrList: string[], schemasContent: string, pathDefineTuple: string): void;
 }

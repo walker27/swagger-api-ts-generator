@@ -14,7 +14,9 @@ export default function generateRootUtilsFile(rootFolderPath: string) {
 export const utilsTsTemplate = `/**
 * 此文件可以按照工程情况调整，脚本只会在没有生成该文件的情况下生成
 */
+// 修正下面带有todo注释的代码
 
+// todo
 type RequestPartOptions = Parameters<typeof request>[1];
 
 type RequestInterceptor<T> = (params: T, cfg?: RequestPartOptions) => [T, RequestPartOptions?];
@@ -32,6 +34,7 @@ export default function defineAPIHOC(urlPrefix: string, interceptors?: Intercept
     return (iParams: Params, iOptions?: RequestPartOptions) => {
       const [params, options] = requestInterceptor(iParams, iOptions);
       const { url: queryUrl, opt: dataPartOptions } = divider(params);
+      // todo 按工程实际情况修正所要使用的请求方法
       const reqConfig = {
         url: \`\${urlPrefix}\${queryUrl}\`,
         method,

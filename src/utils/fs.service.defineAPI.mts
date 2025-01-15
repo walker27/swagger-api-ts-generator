@@ -17,7 +17,7 @@ const FILE_TEMPLATE = `/**
 */
 import defineAPIHOC from "../utils";
 import interceptors from "./interceptors";
-
+// todo defineAPIHOC 第一个参数为请求方法的公共前缀
 const defineAPI = defineAPIHOC("", interceptors);
 export default defineAPI;
 `
